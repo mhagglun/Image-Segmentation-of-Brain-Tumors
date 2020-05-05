@@ -5,7 +5,7 @@ from skimage.transform import resize
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
-class Dataset:
+class Dataset:    
     def __init__(self):
         super().__init__()
         self.input_dim = 512 * 512
@@ -32,7 +32,15 @@ class Dataset:
         return data
 
     def create_batch(self, num_samples=None, filename=None):
+        """Reads data from .mat files in the directory and aggregates 
 
+        Keyword Arguments:
+            num_samples {int} -- The number of samples to aggregate or all in the directory if None (default: {None})
+            filename {str} -- Saves the aggregated data to the set file path if specified (default: {None})
+
+        Returns:
+            [type] {dict} -- Returns the aggregated data as a dictionary
+        """
         if num_samples is None:
             num_samples = len(glob.glob1('data/braintumor','*.mat'))
 
@@ -72,8 +80,15 @@ class Dataset:
 
 
     def load_batch(self, filename):
-        hf = h5py.File(filename, 'r')
+        """Loads the data from the specified h5df file and returns its as a dictionary
 
+        Arguments:
+            filename {str} -- The path to the file
+
+        Returns:
+            [dict] -- A dictionary containing the loaded data
+        """
+        hf = h5py.File(filename, 'r')
         data = {key: hf[key] for key in hf.keys()}
         return data
 
@@ -81,7 +96,17 @@ class Dataset:
 
 
 def display_image(image_data, mask=None, show_mask=True, show_border=True):
+    """Plots the image and if specified, the mask and border. 
+       Takes either a dictionary containing the image information or the corresponding ndarrays
 
+    Arguments:
+        image_data {[dict or ndarray]} -- The image data dictionary or the ndarray
+
+    Keyword Arguments:
+        mask {ndarray} -- Plots the tumor mask if the ndarray is specified (default: {None})
+        show_mask {bool} -- Plots the tumor mask if plotting is done using image data dictionary (default: {True})
+        show_border {bool} -- Plots the tumor border if plotting is done using image data dictionary (default: {True})
+    """
     # Configure colormap for overlay
     cmap = plt.cm.Reds
     red = cmap(np.arange(cmap.N))
