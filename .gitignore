@@ -104,7 +104,4 @@ dmypy.json
 .pyre/
 
 # data sets
-data/
-
-# but not
-!data/README.md
+data/braintumor/
