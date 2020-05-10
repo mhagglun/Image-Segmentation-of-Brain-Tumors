@@ -5,14 +5,15 @@ from skimage.transform import resize
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
+
 class Dataset:
-    
+
     def __init__(self, directory='data/braintumor/'):
         """Constructor for the data set
 
         Keyword Arguments:
             directory {str} -- The path to the directory of the data files (default: {'data/braintumor/'})
-        """        
+        """
         super().__init__()
         self.directory = directory
         self.input_shape = (512, 512)
@@ -50,22 +51,27 @@ class Dataset:
         if num_samples is None:
             num_samples = len(glob.glob1(self.directory+'*.mat'))
 
-        X = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))        # Images
-        Y = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))        # tumor masks
+        # images
+        X = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))
+        # tumor masks
+        Y = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))
         labels = np.zeros((num_samples))
 
         for file_num, file in enumerate(glob.iglob(self.directory+'*.mat')):
 
-            if file_num == num_samples: 
+            if file_num == num_samples:
                 break
 
             image_data = self.read_file(file)
 
             if image_data['image'].shape != self.input_shape:
-                image_data['image'] = resize(image_data['image'], self.input_shape)
-                image_data['tumorMask'] = resize(image_data['tumorMask'], self.input_shape)
+                image_data['image'] = resize(
+                    image_data['image'], self.input_shape, mode='constant', anti_aliasing=True, anti_aliasing_sigma=None)
+                image_data['tumorMask'] = resize(
+                    image_data['tumorMask'], self.input_shape, mode='constant', anti_aliasing=True, anti_aliasing_sigma=None)
 
-            X[file_num, :, :] = image_data['image']
+            X[file_num, :, :] = (image_data['image'] - np.min(image_data['image'])) / (
+                np.max(image_data['image']) - np.min(image_data['image']))
             Y[file_num, :, :] = image_data['tumorMask']
             labels[file_num] = image_data['label']
 
@@ -83,7 +89,6 @@ class Dataset:
 
         return batch
 
-
     def load_batch(self, filename):
         """Loads the data from the specified h5df file and returns its as a dictionary
 
@@ -96,6 +101,7 @@ class Dataset:
         hf = h5py.File(filename, 'r')
         data = {key: hf[key] for key in hf.keys()}
         return data
+
 
 def display_image(image_data, mask=None, show_mask=True, show_border=True):
     """Plots the image and if specified, the mask and border. 
@@ -134,5 +140,6 @@ def display_image(image_data, mask=None, show_mask=True, show_border=True):
 
     plt.show()
 
+
 # Example use
-# data = Dataset().create_batch(100, output='data/images')
+data = Dataset().create_batch(1000, output='data/images')
