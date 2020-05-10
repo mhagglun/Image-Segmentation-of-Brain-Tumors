@@ -15,7 +15,7 @@ train_masks = np.expand_dims(train_masks, axis=3)
 batch_size = 1
 epochs = 1
 
-model = model.U_net((512, 512, 1))
+model = model.U_net((512, 512, 1), n_filters=32, dropout=None)
 model.summary()
 
 # Checkpoint for storing weights during learning

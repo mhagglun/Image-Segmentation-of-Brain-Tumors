@@ -14,8 +14,8 @@ train_images = np.expand_dims(train_images, axis=3)
 train_masks = np.expand_dims(train_masks, axis=3)
 
 
-model = model.U_net(input_size = (512,512,1))
-# model.summary()
+model = model.U_net(input_size=(512, 512, 1), n_filters=32, dropout=None)
+model.summary()
 model.load_weights('weights')
 
 

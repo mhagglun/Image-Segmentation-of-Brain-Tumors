@@ -1,63 +1,102 @@
 from keras.models import Model
 from keras.optimizers import *
-from keras.layers import *  
+from keras.layers import *
 
 
-def U_net(input_size = (512,512,1)):
-    N = input_size[0]
+def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
+    # TODO: Add documentation
+    useDropout = False
+    if isinstance(dropout, (float, int)) and (dropout <= 1.0 and dropout >= 0.0):
+        useDropout = True
+
     inputs = Input(input_size)
 
-    # Encoding section
-    conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(inputs)
-    conv1 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv1)
-    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
-    # pool1 = Dropout(0.25)(pool1)    # Dropout is optional, may be commented out
+    # Encoder
+    c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(inputs)
+    if useDropout:
+        c1 = Dropout(dropout)(c1)
+    c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c1)
+    p1 = MaxPooling2D((2, 2))(c1)
 
-    conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool1)
-    conv2 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv2)
-    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
-    # pool2 = Dropout(0.5)(pool2)
+    c2 = Conv2D(n_filters*2, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(p1)
+    if useDropout:
+        c2 = Dropout(dropout)(c2)
+    c2 = Conv2D(n_filters*2, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c2)
+    p2 = MaxPooling2D((2, 2))(c2)
 
-    conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool2)
-    conv3 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv3)
-    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)    
-    # pool3 = Dropout(0.5)(pool3)
+    c3 = Conv2D(n_filters*4, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(p2)
+    if useDropout:
+        c3 = Dropout(dropout)(c3)
+    c3 = Conv2D(n_filters*4, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c3)
+    p3 = MaxPooling2D((2, 2))(c3)
 
-    conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool3)     
-    conv4 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv4)
-    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
-    # pool4 = Dropout(0.5)(pool4)
+    c4 = Conv2D(n_filters*8, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(p3)
+    if useDropout:
+        c4 = Dropout(dropout)(c4)
+    c4 = Conv2D(n_filters*8, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c4)
+    p4 = MaxPooling2D(pool_size=(2, 2))(c4)
 
     # Bottleneck
-    conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(pool4)
-    conv5 = Conv2D(1024, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv5)
+    c5 = Conv2D(n_filters*16, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(p4)
+    if useDropout:
+        c5 = Dropout(dropout)(c5)
+    c5 = Conv2D(n_filters*16, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c5)
 
-    # Decoding section    
-    upconv6 = Conv2DTranspose(512, kernel_size=2, strides=2, padding='same',kernel_initializer = 'he_normal')(conv5)
-    merge4_6 = concatenate([conv4, upconv6], axis=3)
-    conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge4_6)
-    conv6 = Conv2D(512, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv6)
+    # Decoder
+    u6 = Conv2DTranspose(n_filters*8, (2, 2),
+                         strides=(2, 2), padding='same')(c5)
+    u6 = concatenate([u6, c4])
+    c6 = Conv2D(n_filters*8, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(u6)
+    if useDropout:
+        c6 = Dropout(dropout)(c6)
+    c6 = Conv2D(n_filters*8, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c6)
 
-    upconv7 = Conv2DTranspose(256, kernel_size=2, strides=2, padding='same',kernel_initializer = 'he_normal')(conv6)
-    merge3_7 = concatenate([conv3, upconv7], axis=3) 
-    conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge3_7)
-    conv7 = Conv2D(256, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv7)
-    
-    upconv8 = Conv2DTranspose(128, kernel_size=2, strides=2, padding='same',kernel_initializer = 'he_normal')(conv7)
-    merge2_8 = concatenate([conv2, upconv8], axis=3)
-    conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge2_8)
-    conv8 = Conv2D(128, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv8)
+    u7 = Conv2DTranspose(n_filters*4, (2, 2),
+                         strides=(2, 2), padding='same')(c6)
+    u7 = concatenate([u7, c3])
+    c7 = Conv2D(n_filters*4, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(u7)
+    if useDropout:
+        c7 = Dropout(dropout)(c7)
+    c7 = Conv2D(n_filters*4, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c7)
 
-    upconv9 = Conv2DTranspose(64, kernel_size=2, strides=2, padding='same',kernel_initializer = 'he_normal')(conv8)
-    merge1_9 = concatenate([conv1, upconv9], axis=3)
-    conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(merge1_9)
-    conv9 = Conv2D(64, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
+    u8 = Conv2DTranspose(n_filters*2, (2, 2),
+                         strides=(2, 2), padding='same')(c7)
+    u8 = concatenate([u8, c2])
+    c8 = Conv2D(n_filters*2, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(u8)
+    if useDropout:
+        c8 = Dropout(dropout)(c8)
+    c8 = Conv2D(n_filters*2, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c8)
 
-    # conv9 = Conv2D(2, 3, activation = 'relu', padding = 'same', kernel_initializer = 'he_normal')(conv9)
-    output = Conv2D(1, 1, activation = 'sigmoid')(conv9)
+    u9 = Conv2DTranspose(n_filters, (2, 2), strides=(2, 2), padding='same')(c8)
+    u9 = concatenate([u9, c1], axis=3)
+    c9 = Conv2D(n_filters, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(u9)
+    if useDropout:
+        c9 = Dropout(dropout)(c9)
+    c9 = Conv2D(n_filters, (3, 3), activation='relu', kernel_initializer='he_normal',
+                padding='same')(c9)
 
-    model = Model(input = inputs, output = output)
+    outputs = Conv2D(1, (1, 1), activation='sigmoid')(c9)
 
-    model.compile(optimizer = Adam(lr = 1e-3), loss = 'binary_crossentropy', metrics = ['accuracy'])    
+    model = Model(inputs=inputs, outputs=outputs)
+
+    model.compile(optimizer=Adam(lr=1e-3),
+                  loss='binary_crossentropy', metrics=['accuracy'])
 
     return model
