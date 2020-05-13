@@ -7,27 +7,30 @@ import model
 import preprocessing
 
 sns.set_style('darkgrid')
-# tf.config.optimizer.set_jit(True)
-# tf.config.set_soft_device_placement(True)
-# tf.debugging.set_log_device_placement(True)
 
-dataset = preprocessing.Dataset().load_batch('data/images')
+# tf.config.optimizer.set_jit(True)
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
+tf.debugging.set_log_device_placement(True)
+
+dataset = preprocessing.Dataset().load_batch('data/train_images')
 
 train_images = dataset['image']
 train_masks = dataset['mask']
 train_images = np.expand_dims(train_images, axis=3)
 train_masks = np.expand_dims(train_masks, axis=3)
 
-batch_size = 1
+batch_size = 8
 epochs = 10
 
-model = model.U_net((512, 512, 1), n_filters=32, dropout=None)
+model = model.U_net((512, 512, 1), n_filters=16, dropout=None)
 # model.summary()
-# tf.keras.utils.plot_model(U_net(), to_file='model.png',show_shapes=True)
+# tf.keras.utils.plot_model(U_net(), to_file='model.png', show_shapes=True)
 
 # Checkpoint for storing weights during learning
 checkpoint = ModelCheckpoint(
-    'weights', save_best_only=True, monitor='val_loss', mode='min')
+    'weights/model_weights_{}e_{}bs'.format(epochs, batch_size), save_best_only=True, monitor='val_loss', mode='min')
 
 # Reduces learning rate when a metric has stopped improving
 reduce_lr = ReduceLROnPlateau(

@@ -1,10 +1,7 @@
 import glob
 import h5py
-import numpy as np
 from skimage.transform import resize
-import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
-
+import numpy as np
 
 class Dataset:
 
@@ -38,7 +35,7 @@ class Dataset:
                         data[struct] = field
         return data
 
-    def create_batch(self, num_samples=None, output=None):
+    def create_batch(self, num_samples=None, test_split=0.2, outputs=['data/train_images','data/test_images']):
         """Reads data and aggregates the data from .mat files in the specified directory
 
         Keyword Arguments:
@@ -49,7 +46,7 @@ class Dataset:
             {dict} -- Returns the aggregated data as a dictionary
         """
         if num_samples is None:
-            num_samples = len(glob.glob1(self.directory+'*.mat'))
+            num_samples = len(glob.glob1(self.directory, '*.mat'))
 
         # images
         X = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))
@@ -75,19 +72,29 @@ class Dataset:
             Y[file_num, :, :] = image_data['tumorMask']
             labels[file_num] = image_data['label']
 
-        batch = {
-            'image': X,
-            'mask': Y,
-            'label': labels,
+
+        train_samples = int(num_samples * (1-test_split))
+        rand = np.random.permutation(num_samples)   # shuffle indices of the data to select
+
+        train_batch = {
+            'image': X[rand[:train_samples], :, :],
+            'mask': Y[rand[:train_samples], :, :],
+            'label': labels[rand[:train_samples]],
         }
 
-        if output is not None:
+        test_batch = {
+            'image': X[rand[train_samples:]],
+            'mask': Y[rand[train_samples:]],
+            'label': labels[rand[train_samples:]],
+        }
+
+        for output, batch in zip(outputs, [train_batch, test_batch]):
             hf = h5py.File(output, 'w')
             for key in batch:
                 hf.create_dataset(key, data=batch[key])
             hf.close()
 
-        return batch
+        return train_batch, test_batch
 
     def load_batch(self, filename):
         """Loads the data from the specified h5df file and returns its as a dictionary
@@ -103,43 +110,6 @@ class Dataset:
         return data
 
 
-def display_image(image_data, mask=None, show_mask=True, show_border=True):
-    """Plots the image and if specified, the mask and border. 
-       Takes either a dictionary containing the image information or the corresponding ndarrays
-
-    Arguments:
-        image_data {dict or ndarray} -- The image data dictionary or the ndarray
-
-    Keyword Arguments:
-        mask {ndarray} -- Plots the tumor mask if the ndarray is specified (default: {None})
-        show_mask {bool} -- Plots the tumor mask if plotting is done using image data dictionary (default: {True})
-        show_border {bool} -- Plots the tumor border if plotting is done using image data dictionary (default: {True})
-    """
-    # Configure colormap for overlay
-    cmap = plt.cm.Reds
-    red = cmap(np.arange(cmap.N))
-    red[:, -1] = np.linspace(0, 1, cmap.N)
-    red = ListedColormap(red)
-
-    if isinstance(image_data, dict):
-        plt.imshow(image_data['image'], cmap='gray')
-        if show_mask:
-            plt.imshow(image_data['tumorMask'], cmap=red, alpha=0.5)
-
-        if show_border:
-            # TODO: Convert tumorBorder data [x1, y1, x2, y2 ...] into plottable image/outline
-            # plt.imshow(image_data['tumorBorder'], cmap='jet', alpha=0.5)
-            pass
-
-    else:
-        plt.imshow(image_data.reshape(512, 512),
-                   cmap='gray', interpolation='none')
-        if mask is not None:
-            plt.imshow(mask.reshape(512, 512), cmap=red,
-                       alpha=0.6, interpolation='none')
-
-    plt.show()
-
 
 # Example use
-data = Dataset().create_batch(1000, output='data/images')
+data = Dataset().create_batch(1250)
