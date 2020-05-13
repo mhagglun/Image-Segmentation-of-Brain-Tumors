@@ -4,7 +4,7 @@ from keras.layers import *
 
 
 def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
-    # TODO: Add documentation
+
     useDropout = False
     if isinstance(dropout, (float, int)) and (dropout <= 1.0 and dropout >= 0.0):
         useDropout = True
@@ -12,11 +12,11 @@ def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
     inputs = Input(input_size)
 
     # Encoder
-    c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal',
+    c1 = Conv2D(n_filters, (3, 3), activation='relu', kernel_initializer='he_normal',
                 padding='same')(inputs)
     if useDropout:
         c1 = Dropout(dropout)(c1)
-    c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal',
+    c1 = Conv2D(n_filters, (3, 3), activation='relu', kernel_initializer='he_normal',
                 padding='same')(c1)
     p1 = MaxPooling2D((2, 2))(c1)
 
@@ -100,3 +100,9 @@ def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
                   loss='binary_crossentropy', metrics=['accuracy'])
 
     return model
+
+
+def dice_loss(y_true, y_pred):
+    num = 2 * tf.reduce_sum(y_true * y_pred, axis=(1, 2, 3))
+    denom = tf.reduce_sum(y_true + y_pred, axis=(1, 2, 3))
+    return 1 - num / denom
