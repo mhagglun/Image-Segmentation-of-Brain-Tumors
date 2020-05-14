@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 # source ./venv/bin/activate
 
@@ -23,11 +24,28 @@ class LinkNet:
         predicted = self.model.predict(input)
         return predicted
 
-    def fit(samples, targets, batch_size, epochs):
-        self.model.fit(samples, targets, batch_size, epochs)
+    def fit(samples, targets, batch_size, epochs, save_model = False, checkpoint_path = None, save_period = 1):
+        if save_model:
+            self.checkpoint_path = checkpoint_path
+            checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath = checkpoint_path,
+                                                                     save_weights_only=True,
+                                                                     verbose=1,
+                                                                     period = save_period)
+            callbacks = [checkpoint_callback]
+        else:
+            callbacks = None
+
+        self.model.fit(samples, targets, batch_size, epochs, callbacks = callbacks)
 
     def train(self):
+        """Write a custom training loop."""
         pass
+
+    def load_latest_model(self):
+        checkpoint_dir = os.path.dirname(self.checkpoint_path)
+        latest = tf.train.latest_checkpoint(checkpoint_dir)
+        self.model = self.build_model()
+        self.model.load_weights(latest)
 
     def build_model(self):
 
@@ -90,7 +108,6 @@ class LinkNet:
         l3 = tf.keras.layers.Activation(output_activation)(l3)
         return l3
 
-
     def add_encoder_block(self, input, nf, apply_batchnorm = True):
         res1 = self.add_residual_block(input, nf, downsample = True, apply_batchnorm = apply_batchnorm)
         res2 = self.add_residual_block(res1, nf, downsample = False, apply_batchnorm = apply_batchnorm)
@@ -140,24 +157,3 @@ class LinkNet:
 
         return output
 
-
-
-
-
-
-
-
-image_shape = (512, 512, 1)
-link = LinkNet(image_shape = image_shape, num_classes = 2)
-# x = np.random.randn(1, 512, 512, 1)
-# y = link.predict(x)[0]
-# y_class = np.argmax(y, axis=-1)
-#
-# plt.imshow(y_class)
-# plt.show()
-
-# a = np.random.rand(2, 3, 3)
-# arg = np.argmax(a, axis = 0)
-# print(a)
-# print()
-# print(arg)
