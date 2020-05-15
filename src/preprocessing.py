@@ -1,115 +1,72 @@
+import tensorflow as tf
+import numpy as np
 import glob
 import h5py
-from skimage.transform import resize
-import numpy as np
 
-class Dataset:
 
-    def __init__(self, directory='data/braintumor/'):
-        """Constructor for the data set
+class DataGenerator():
 
-        Keyword Arguments:
-            directory {str} -- The path to the directory of the data files (default: {'data/braintumor/'})
-        """
+    def __init__(self, directory, epochs, batch_size):
         super().__init__()
         self.directory = directory
-        self.input_shape = (512, 512)
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.steps_per_epoch = int(len(glob.glob(self.directory+'*.mat')) / batch_size)
+        self.stream = self.pipeline()
 
-    def read_file(self, filename):
-        """Read the data from the .mat file and returns its contents as a dictionary
+    def pipeline(self):
+        train_data = tf.data.Dataset.from_generator(self.generator, output_types=(
+            tf.float32, tf.uint8), output_shapes=(tf.TensorShape([512, 512, 1]), tf.TensorShape([512, 512, 1])))
 
-        Arguments:
-            filename {str} -- The path to the .mat file to read
+        train_data = train_data.map(self.preprocess_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        train_data = train_data.batch(self.batch_size)
+        train_data = train_data.repeat(self.epochs)
+        train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
+        train_data = iter(train_data)
+        return train_data
 
-        Returns:
-            [dict] -- A dictionary containing the data stored in the .mat file
-        """
-        data = {}
-        with h5py.File(filename, 'r') as file:
-            for struct in file:
-                attributes = file[struct]
-                for field in attributes:
-                    if isinstance(field, str):
-                        data[field] = attributes[field][()]
-                    else:
-                        data[struct] = field
-        return data
+    def generator(self):
+        while True:
+            for filename in glob.glob(self.directory+'*.mat'):
+                data = {}
+                with h5py.File(filename, 'r') as file:
+                    for struct in file:
+                        attributes = file[struct]
+                        for field in attributes:
+                            if isinstance(field, str):
+                                data[field] = attributes[field][()]
+                            else:
+                                data[struct] = field
 
-    def create_batch(self, num_samples=None, test_split=0.2, outputs=['data/train_images','data/test_images']):
-        """Reads data and aggregates the data from .mat files in the specified directory
+                data['image'] = tf.expand_dims(data['image'], axis=-1)
+                data['tumorMask'] = tf.expand_dims(data['tumorMask'], axis=-1)
 
-        Keyword Arguments:
-            num_samples {int} -- The number of samples to aggregate or all in the directory if None (default: {None})
-            output {str} -- Saves the aggregated data to the set file path if specified (default: {None})
+                if data['image'].shape != (512, 512):
+                    data['image'] = tf.image.resize(data['image'], (512, 512))
+                    data['tumorMask'] = tf.image.resize(data['tumorMask'], (512, 512))
 
-        Returns:
-            {dict} -- Returns the aggregated data as a dictionary
-        """
-        if num_samples is None:
-            num_samples = len(glob.glob1(self.directory, '*.mat'))
-
-        # images
-        X = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))
-        # tumor masks
-        Y = np.zeros((num_samples, self.input_shape[0], self.input_shape[1]))
-        labels = np.zeros((num_samples))
-
-        for file_num, file in enumerate(glob.iglob(self.directory+'*.mat')):
-
-            if file_num == num_samples:
-                break
-
-            image_data = self.read_file(file)
-
-            if image_data['image'].shape != self.input_shape:
-                image_data['image'] = resize(
-                    image_data['image'], self.input_shape, mode='constant', anti_aliasing=True, anti_aliasing_sigma=None)
-                image_data['tumorMask'] = resize(
-                    image_data['tumorMask'], self.input_shape, mode='constant', anti_aliasing=True, anti_aliasing_sigma=None)
-
-            X[file_num, :, :] = (image_data['image'] - np.min(image_data['image'])) / (
-                np.max(image_data['image']) - np.min(image_data['image']))
-            Y[file_num, :, :] = image_data['tumorMask']
-            labels[file_num] = image_data['label']
+                yield(data['image'], data['tumorMask'])
 
 
-        train_samples = int(num_samples * (1-test_split))
-        rand = np.random.permutation(num_samples)   # shuffle indices of the data to select
+    def preprocess_fn(self, X_data, Y_data):
+            """ Preprocesing of the data, i.e. normalize, resize and flip orientation of image """
+            # Normalize image data to [0,1]
+            X_data = tf.math.divide(tf.math.subtract(X_data, tf.math.reduce_min(X_data)), tf.math.subtract(tf.math.reduce_max(X_data), tf.math.reduce_min(X_data)))
+            Y_data = tf.math.divide(tf.math.subtract(Y_data, tf.math.reduce_min(Y_data)), tf.math.subtract(tf.math.reduce_max(Y_data), tf.math.reduce_min(Y_data)))
 
-        train_batch = {
-            'image': X[rand[:train_samples], :, :],
-            'mask': Y[rand[:train_samples], :, :],
-            'label': labels[rand[:train_samples]],
-        }
-
-        test_batch = {
-            'image': X[rand[train_samples:]],
-            'mask': Y[rand[train_samples:]],
-            'label': labels[rand[train_samples:]],
-        }
-
-        for output, batch in zip(outputs, [train_batch, test_batch]):
-            hf = h5py.File(output, 'w')
-            for key in batch:
-                hf.create_dataset(key, data=batch[key])
-            hf.close()
-
-        return train_batch, test_batch
-
-    def load_batch(self, filename):
-        """Loads the data from the specified h5df file and returns its as a dictionary
-
-        Arguments:
-            filename {str} -- The path to the file
-
-        Returns:
-            [dict] -- A dictionary containing the loaded data
-        """
-        hf = h5py.File(filename, 'r')
-        data = {key: hf[key] for key in hf.keys()}
-        return data
+            return X_data, Y_data
 
 
+def load_batch(filename):
+    """Loads the data from the specified h5df file and returns its as a dictionary
+    Arguments:
+        filename {str} -- The path to the file
+    Returns:
+        [dict] -- A dictionary containing the loaded data
+    """
+    hf = h5py.File(filename, 'r')
+    data = {key: hf[key] for key in hf.keys()}
+    return data
 
-# Example use
-data = Dataset().create_batch(1250)
+
+data = DataGenerator('data/braintumor/', epochs=10, batch_size=1)

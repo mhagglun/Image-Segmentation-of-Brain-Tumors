@@ -1,3 +1,4 @@
+import tensorflow as tf
 from keras.models import Model
 from keras.optimizers import *
 from keras.layers import *
@@ -96,13 +97,14 @@ def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
 
     model = Model(inputs=inputs, outputs=outputs)
 
-    model.compile(optimizer=Adam(lr=1e-3),
-                  loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=Adam(lr=1e-4),
+                  loss='binary_crossentropy',
+                  metrics=['accuracy', dice_loss])
 
     return model
 
 
 def dice_loss(y_true, y_pred):
-    num = 2 * tf.reduce_sum(y_true * y_pred, axis=(1, 2, 3))
+    num = 2 * tf.reduce_sum(y_true * y_pred, axis=(1, 2, 3,))
     denom = tf.reduce_sum(y_true + y_pred, axis=(1, 2, 3))
     return 1 - num / denom
