@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
-
+import seaborn as sns
+sns.set_style('darkgrid')
+plt.rcParams["axes.grid"] = False
 
 def plot_masks(image_data, true_mask, predicted_mask, filename=None):
     """Plots the image and if specified, the mask and border. 
@@ -37,10 +40,19 @@ def plot_masks(image_data, true_mask, predicted_mask, filename=None):
     ax2.set_title('Predicted mask')
 
     ax3 = plt.subplot(1, 3, 3)
-    ax3.imshow(true_mask - predicted_mask, cmap='gray', interpolation='none')
+    mask = true_mask - predicted_mask
+    ax3.imshow(mask, cmap='gray', interpolation='none')
+
+    inv_mask = np.logical_not(np.logical_or(true_mask, predicted_mask))
+    ax3.imshow(inv_mask, cmap=red, interpolation='none', alpha=0.6)
     ax3.set_title('Difference between masks')
+    patches = [mpatches.Patch(facecolor='white', label="FN", edgecolor='black'), mpatches.Patch(
+        facecolor='gray', label="TP", edgecolor='black'), mpatches.Patch(facecolor='black', label="FP", edgecolor='black')]
+    ax3.legend(handles=patches, bbox_to_anchor=(
+        1.05, 1), loc=2, borderaxespad=0.)
 
     plt.tight_layout()
+
     if isinstance(filename, str):
         plt.savefig(filename)
     else:
