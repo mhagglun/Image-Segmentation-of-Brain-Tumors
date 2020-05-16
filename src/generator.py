@@ -24,7 +24,7 @@ class DataGenerator():
         self.epochs = epochs
         self.batch_size = batch_size
         self.steps_per_epoch = int(
-            len(glob.glob(self.directory+'*.mat')) / batch_size)
+            len(glob.glob(self.directory+'/*.mat')) / batch_size)
         self.stream = self.pipeline()
 
     def pipeline(self):
@@ -40,7 +40,7 @@ class DataGenerator():
 
     def generator(self):
         while True:
-            for filename in glob.glob(self.directory+'*.mat'):
+            for filename in glob.glob(self.directory+'/*.mat'):
                 data = {}
                 with h5py.File(filename, 'r') as file:
                     for struct in file:
