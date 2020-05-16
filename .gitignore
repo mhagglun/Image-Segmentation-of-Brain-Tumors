@@ -104,5 +104,7 @@ dmypy.json
 .pyre/
 
 # data sets
-data/
-!data/README.md
+data/braintumor
+data/train
+data/val
+data/test
