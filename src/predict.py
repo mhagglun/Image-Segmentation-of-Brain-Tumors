@@ -1,40 +1,41 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
-import model
-import preprocessing
+from Unet import Unet, dice_score
+from generator import DataGenerator
 import util
 
-config = tf.compat.v1.ConfigProto()
-config.gpu_options.allow_growth = True
-sess = tf.compat.v1.Session(config=config)
-
-
-dataset = preprocessing.DataGenerator().load_batch('data/test_images')
-
+test_data = DataGenerator('data/braintumorval/', epochs=1, batch_size=1)
 
 N = 5   # Number of samples to plot
-indices = sorted(np.random.choice(len(dataset['image']), N, replace=False))
 
-test_images = dataset['image'][indices, :, :]
-test_masks = dataset['mask'][indices, :, :]
 
-test_images = np.expand_dims(test_images, axis=3)
-test_masks = np.expand_dims(test_masks, axis=3)
-
-model = model.U_net(input_size=(512, 512, 1), n_filters=16, dropout=None)
+model = Unet(input_size=(512, 512, 1), n_filters=16, dropout=None)
 # model.summary()
-model.load_weights('weights/model_weights_10e_1bs')
+model.load_weights('model_weights_5e_1bs.h5')
 
-predictions = model.predict(test_images, batch_size=1, verbose=1)
+predictions = model.predict(
+    test_data.stream, steps=test_data.steps_per_epoch, verbose=1)
 
-for n in range(N):
-    true_mask = test_masks[n].reshape(512, 512)
-    predicted_mask = predictions[n].reshape(512, 512)
 
+test_images = []
+for idx, data in enumerate(test_data.stream):
+    if idx == N:
+        break
+    test_images.append(data)
+
+for idx, img in enumerate(test_images):
+
+    true_mask = img[1]
+    predicted_mask = predictions[idx]
     # Threshold predicted output
     predicted_mask[predicted_mask > 0.5] = 1
     predicted_mask[predicted_mask <= 0.5] = 0
 
-    util.plot_masks(test_images[n], true_mask, predicted_mask,
+    dice = dice_score(true_mask, predicted_mask)
+    print(dice)
+
+    true_mask = true_mask.numpy().reshape((512, 512))
+    predicted_mask = predicted_mask.reshape((512, 512))
+    util.plot_masks(img[0].numpy().reshape((512, 512)), true_mask, predicted_mask,
                     filename=None)
