@@ -1,10 +1,10 @@
 import tensorflow as tf
-from keras.models import Model
-from keras.optimizers import *
-from keras.layers import *
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import *
+from tensorflow.keras.layers import *
 
 
-def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
+def Unet(input_size=(512, 512, 1), n_filters=16, dropout=None):
 
     useDropout = False
     if isinstance(dropout, (float, int)) and (dropout <= 1.0 and dropout >= 0.0):
@@ -99,12 +99,14 @@ def U_net(input_size=(512, 512, 1), n_filters=16, dropout=None):
 
     model.compile(optimizer=Adam(lr=1e-4),
                   loss='binary_crossentropy',
-                  metrics=['accuracy', dice_loss])
+                  metrics=['accuracy'])
 
     return model
 
+def dice_score(y_true, y_pred):
 
-def dice_loss(y_true, y_pred):
+    tf.math.greater(y_pred, 0.5)
     num = 2 * tf.reduce_sum(y_true * y_pred, axis=(1, 2, 3,))
     denom = tf.reduce_sum(y_true + y_pred, axis=(1, 2, 3))
-    return 1 - num / denom
+
+    return num / denom
