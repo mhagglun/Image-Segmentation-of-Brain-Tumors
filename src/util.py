@@ -65,8 +65,8 @@ def plot_masks(image_data, true_mask, predicted_mask, filename=None):
     inv_mask = np.logical_not(np.logical_or(true_mask, predicted_mask))
     ax3.imshow(inv_mask, cmap=white, interpolation='none', alpha=1)
     
-    patches = [mpatches.Patch(facecolor='firebrick', label="FP", edgecolor='black'), mpatches.Patch(
-        facecolor='seagreen', label="TP", edgecolor='black'), mpatches.Patch(facecolor='cornflowerblue', label="FN", edgecolor='black')]
+    patches = [mpatches.Patch(facecolor='firebrick', label="FN", edgecolor='black'), mpatches.Patch(
+        facecolor='seagreen', label="TP", edgecolor='black'), mpatches.Patch(facecolor='cornflowerblue', label="FP", edgecolor='black')]
     ax3.legend(handles=patches, bbox_to_anchor=(
         1.05, 1), loc=2, borderaxespad=0.)
     ax3.grid(color='lightgray')
