@@ -13,6 +13,7 @@ class LinkNet:
         self.conv_size = 3
         self.deconv_size = 3
         self.activation = 'relu'
+        self.initialization = 'he_normal'
         self.num_outputs = num_classes if num_classes > 2 else 1
         self.learning_rate = learning_rate
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -49,7 +50,7 @@ class LinkNet:
     def add_input_block(self, input, nf, pooling_size, apply_batchnorm=True):
 
         init = tf.keras.layers.Conv2D(
-            nf, kernel_size=7, strides=2, padding="same")(input)
+            nf, kernel_size=7, strides=2, kernel_initializer=self.initialization, padding="same")(input)
 
         if apply_batchnorm:
             init = tf.keras.layers.BatchNormalization()(init)
@@ -62,18 +63,18 @@ class LinkNet:
 
     def add_output_block(self, input, nf, apply_batchnorm=True):
         l1 = tf.keras.layers.Conv2DTranspose(
-            nf, self.deconv_size, strides=2, padding="same")(input)
+            nf, self.deconv_size, strides=2, kernel_initializer=self.initialization, padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
-        l2 = tf.keras.layers.Conv2D(nf, self.conv_size, padding="same")(l1)
+        l2 = tf.keras.layers.Conv2D(nf, self.conv_size, kernel_initializer=self.initialization, padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
         l2 = tf.keras.layers.Activation(self.activation)(l2)
 
         l3 = tf.keras.layers.Conv2DTranspose(
-            self.num_outputs, 2, strides=2, padding="same")(l2)
+            self.num_outputs, 2, strides=2, kernel_initializer=self.initialization, padding="same")(l2)
         if apply_batchnorm:
             l3 = tf.keras.layers.BatchNormalization()(l3)
 
@@ -96,13 +97,13 @@ class LinkNet:
         m = input_shape[-1]  # Channels last, right?
 
         l1 = tf.keras.layers.Conv2D(
-            int(m / 4), kernel_size=1, padding="same")(input)
+            int(m / 4), kernel_size=1, kernel_initializer=self.initialization, padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
         l2 = tf.keras.layers.Conv2DTranspose(
-            int(m / 4), kernel_size=self.deconv_size, strides=2, padding="same")(l1)
+            int(m / 4), kernel_size=self.deconv_size, strides=2, kernel_initializer=self.initialization, padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
         l2 = tf.keras.layers.Activation(self.activation)(l2)
@@ -119,18 +120,18 @@ class LinkNet:
         stride_length = 2 if downsample else 1
 
         l1 = tf.keras.layers.Conv2D(
-            nf, self.conv_size, strides=stride_length, padding="same")(input)
+            nf, self.conv_size, strides=stride_length, kernel_initializer=self.initialization, padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
-        l2 = tf.keras.layers.Conv2D(nf, self.conv_size, padding="same")(l1)
+        l2 = tf.keras.layers.Conv2D(nf, self.conv_size,  kernel_initializer=self.initialization, padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
 
         if downsample:
             shortcut = tf.keras.layers.Conv2D(
-                nf, kernel_size=1, strides=2, padding="same")(input)
+                nf, kernel_size=1, strides=2, kernel_initializer=self.initialization, padding="same")(input)
         else:
             shortcut = input
 
