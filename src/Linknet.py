@@ -121,18 +121,18 @@ class LinkNet:
         stride_length = 2 if downsample else 1
 
         l1 = tf.keras.layers.Conv2D(
-            nf, self.conv_size, strides=stride_length, kernel_initializer=self.initialization, kernel_initializer=self.initialization, padding="same")(input)
+            nf, self.conv_size, strides=stride_length, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
-        l2 = tf.keras.layers.Conv2D(nf, self.conv_size,  kernel_initializer=self.initialization, kernel_initializer=self.initialization, padding="same")(l1)
+        l2 = tf.keras.layers.Conv2D(nf, self.conv_size,  kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
 
         if downsample:
             shortcut = tf.keras.layers.Conv2D(
-                nf, kernel_size=1, strides=2, kernel_initializer=self.initialization, kernel_initializer=self.initialization, padding="same")(input)
+                nf, kernel_size=1, strides=2, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
         else:
             shortcut = input
 
