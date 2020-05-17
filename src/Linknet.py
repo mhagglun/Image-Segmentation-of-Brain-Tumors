@@ -8,13 +8,14 @@ import datetime
 
 class LinkNet:
 
-    def __init__(self, image_shape, num_classes, learning_rate=1e-3):
+    def __init__(self, image_shape, num_classes, nf=64, learning_rate=1e-3):
         self.image_shape = image_shape
         self.conv_size = 3
         self.deconv_size = 3
         self.activation = 'relu'
         self.initialization = 'he_normal'
         self.regularization = 1e-4
+        self.nf = nf
         self.num_outputs = num_classes if num_classes > 2 else 1
         self.learning_rate = learning_rate
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
@@ -25,23 +26,23 @@ class LinkNet:
 
         # Initial block
         input = tf.keras.Input(shape=self.image_shape)
-        init = self.add_input_block(input, nf=64, pooling_size=3)
+        init = self.add_input_block(input, nf=self.nf, pooling_size=3)
 
-        enc1 = self.add_encoder_block(init, nf=64, apply_batchnorm=True)
-        enc2 = self.add_encoder_block(enc1, nf=128, apply_batchnorm=True)
-        enc3 = self.add_encoder_block(enc2, nf=256, apply_batchnorm=True)
-        enc4 = self.add_encoder_block(enc3, nf=512, apply_batchnorm=True)
+        enc1 = self.add_encoder_block(init, nf=self.nf, apply_batchnorm=True)
+        enc2 = self.add_encoder_block(enc1, nf=2*self.nf, apply_batchnorm=True)
+        enc3 = self.add_encoder_block(enc2, nf=4*self.nf, apply_batchnorm=True)
+        enc4 = self.add_encoder_block(enc3, nf=8*self.nf, apply_batchnorm=True)
 
-        dec4 = self.add_decoder_block(enc4, nf=256, apply_batchnorm=True)
+        dec4 = self.add_decoder_block(enc4, nf=4*self.nf, apply_batchnorm=True)
         dec3 = tf.keras.layers.add([dec4, enc3])
-        dec3 = self.add_decoder_block(dec3, nf=128, apply_batchnorm=True)
+        dec3 = self.add_decoder_block(dec3, nf=2*self.nf, apply_batchnorm=True)
 
         dec2 = tf.keras.layers.add([dec3, enc2])
-        dec2 = self.add_decoder_block(dec2, nf=64, apply_batchnorm=True)
+        dec2 = self.add_decoder_block(dec2, nf=self.nf, apply_batchnorm=True)
 
         dec1 = tf.keras.layers.add([dec2, enc1])
-        dec1 = self.add_decoder_block(dec1, nf=64, apply_batchnorm=True)
-        output = self.add_output_block(dec1, nf=32, apply_batchnorm=True)
+        dec1 = self.add_decoder_block(dec1, nf=self.nf, apply_batchnorm=True)
+        output = self.add_output_block(dec1, nf=int(self.nf/2), apply_batchnorm=True)
 
         model = tf.keras.Model(input, output, name='Linknet')
         model.compile(optimizer=self.optimizer, loss=self.loss,
