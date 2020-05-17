@@ -3,10 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap, BoundaryNorm
-import seaborn as sns
+import seaborn as sns; sns.set()
 
-sns.set_style('darkgrid')
-plt.rcParams["axes.grid"] = False
 
 
 def plot_masks(image_data, true_mask, predicted_mask, filename=None):
@@ -27,39 +25,56 @@ def plot_masks(image_data, true_mask, predicted_mask, filename=None):
     red[:, -1] = np.linspace(0, 1, cmap.N)
     red = ListedColormap(red)
 
-    cmap = plt.cm.gray
-    gray = ListedColormap(['white', 'gray', 'black'])
+    # cmap = plt.cm.RdBu
+    cmap = plt.get_cmap('RdBu', 3)
+    rgb = ListedColormap(['cornflowerblue', 'seagreen', 'firebrick'])
     norm = BoundaryNorm([1, 0, -1], cmap.N)
 
-    fig = plt.figure()
+    cmap = plt.cm.gray
+    white = cmap(np.arange(cmap.N))
+    white[:, -1] = np.linspace(0, 1, cmap.N)
+    white = ListedColormap(white)
+
+    fig = plt.figure(figsize=(15.0, 6.0))
     ax1 = plt.subplot(1, 3, 1)
     ax1.imshow(image_data.reshape(512, 512),
                cmap='gray', interpolation='none')
     ax1.imshow(true_mask.reshape(512, 512), cmap=red,
                alpha=0.6, interpolation='none')
+
+    ax1.axis('off')
+    ax1.grid(b=None)
     ax1.set_title('True mask')
+
 
     ax2 = plt.subplot(1, 3, 2)
     ax2.imshow(image_data.reshape(512, 512),
                cmap='gray', interpolation='none')
     ax2.imshow(predicted_mask.reshape(512, 512), cmap=red,
                alpha=0.6, interpolation='none')
+    ax2.axis('off')
+    ax2.grid(b=None)
     ax2.set_title('Predicted mask')
+
 
     ax3 = plt.subplot(1, 3, 3)
     mask = true_mask - predicted_mask
-    ax3.imshow(mask, cmap='gray', interpolation='none')
+    dice = dice_score(true_mask, predicted_mask)
+    ax3.imshow(mask, cmap=rgb, interpolation='none')
 
     inv_mask = np.logical_not(np.logical_or(true_mask, predicted_mask))
-    ax3.imshow(inv_mask, cmap=red, interpolation='none', alpha=1)
-    patches = [mpatches.Patch(facecolor='white', label="FN", edgecolor='black'), mpatches.Patch(
-        facecolor='gray', label="TP", edgecolor='black'), mpatches.Patch(facecolor='black', label="FP", edgecolor='black')]
+    ax3.imshow(inv_mask, cmap=white, interpolation='none', alpha=1)
+    
+    patches = [mpatches.Patch(facecolor='firebrick', label="FP", edgecolor='black'), mpatches.Patch(
+        facecolor='seagreen', label="TP", edgecolor='black'), mpatches.Patch(facecolor='cornflowerblue', label="FN", edgecolor='black')]
     ax3.legend(handles=patches, bbox_to_anchor=(
         1.05, 1), loc=2, borderaxespad=0.)
+    ax3.grid(color='lightgray')
     ax3.set_title('Difference between masks')
+    ax3.set_xlabel('DICE score: {:.3f}'.format(tf.reduce_mean(tf.stack(dice)).numpy()), fontsize=12)
+    ax3.set_xticklabels([])
+    ax3.set_yticklabels([])
 
-    # dice = dice_score(true_mask, predicted_mask)
-    # fig.suptitle('DICE = {:.%2f}'.format(dice.numpy()))
     plt.tight_layout()
 
     if isinstance(filename, str):
@@ -81,4 +96,5 @@ def dice_score(y_true, y_pred):
     FP = tf.math.greater(diff, zero)
     FP = tf.reduce_sum(tf.cast(FP, tf.float32))
     DICE = 2 * TP / (2 * TP + FN + FP)
+
     return DICE
