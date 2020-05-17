@@ -1,0 +1,1 @@
+DICE score on test set: 0.455
