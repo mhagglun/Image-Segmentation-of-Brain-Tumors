@@ -42,7 +42,8 @@ class LinkNet:
 
         dec1 = tf.keras.layers.add([dec2, enc1])
         dec1 = self.add_decoder_block(dec1, nf=self.nf, apply_batchnorm=True)
-        output = self.add_output_block(dec1, nf=int(self.nf/2), apply_batchnorm=True)
+        output = self.add_output_block(
+            dec1, nf=int(self.nf/2), apply_batchnorm=True)
 
         model = tf.keras.Model(input, output, name='Linknet')
         model.compile(optimizer=self.optimizer, loss=self.loss,
@@ -52,7 +53,7 @@ class LinkNet:
     def add_input_block(self, input, nf, pooling_size, apply_batchnorm=True):
 
         init = tf.keras.layers.Conv2D(
-            nf, kernel_size=7, strides=2, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
+            nf, kernel_size=7, strides=2, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(input)
 
         if apply_batchnorm:
             init = tf.keras.layers.BatchNormalization()(init)
@@ -65,18 +66,19 @@ class LinkNet:
 
     def add_output_block(self, input, nf, apply_batchnorm=True):
         l1 = tf.keras.layers.Conv2DTranspose(
-            nf, self.deconv_size, strides=2, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
+            nf, self.deconv_size, strides=2, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
-        l2 = tf.keras.layers.Conv2D(nf, self.conv_size, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
+        l2 = tf.keras.layers.Conv2D(nf, self.conv_size, kernel_initializer=self.initialization,
+                                    kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
         l2 = tf.keras.layers.Activation(self.activation)(l2)
 
         l3 = tf.keras.layers.Conv2DTranspose(
-            self.num_outputs, 2, strides=2, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(l2)
+            self.num_outputs, 2, strides=2, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(l2)
         if apply_batchnorm:
             l3 = tf.keras.layers.BatchNormalization()(l3)
 
@@ -99,18 +101,19 @@ class LinkNet:
         m = input_shape[-1]  # Channels last, right?
 
         l1 = tf.keras.layers.Conv2D(
-            int(m / 4), kernel_size=1, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
+            int(m / 4), kernel_size=1, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
         l2 = tf.keras.layers.Conv2DTranspose(
-            int(m / 4), kernel_size=self.deconv_size, strides=2, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
+            int(m / 4), kernel_size=self.deconv_size, strides=2, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
         l2 = tf.keras.layers.Activation(self.activation)(l2)
 
-        l3 = tf.keras.layers.Conv2D(nf, kernel_size=1, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(l2)
+        l3 = tf.keras.layers.Conv2D(nf, kernel_size=1, kernel_initializer=self.initialization,
+                                    kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(l2)
         if apply_batchnorm:
             l3 = tf.keras.layers.BatchNormalization()(l3)
         l3 = tf.keras.layers.Activation(self.activation)(l3)
@@ -122,18 +125,19 @@ class LinkNet:
         stride_length = 2 if downsample else 1
 
         l1 = tf.keras.layers.Conv2D(
-            nf, self.conv_size, strides=stride_length, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
+            nf, self.conv_size, strides=stride_length, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(input)
         if apply_batchnorm:
             l1 = tf.keras.layers.BatchNormalization()(l1)
         l1 = tf.keras.layers.Activation(self.activation)(l1)
 
-        l2 = tf.keras.layers.Conv2D(nf, self.conv_size,  kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
+        l2 = tf.keras.layers.Conv2D(nf, self.conv_size,  kernel_initializer=self.initialization,
+                                    kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(l1)
         if apply_batchnorm:
             l2 = tf.keras.layers.BatchNormalization()(l2)
 
         if downsample:
             shortcut = tf.keras.layers.Conv2D(
-                nf, kernel_size=1, strides=2, kernel_initializer=self.initialization, kernel_regularizer = tf.keras.regularizers.l2(self.regularization), padding="same")(input)
+                nf, kernel_size=1, strides=2, kernel_initializer=self.initialization, kernel_regularizer=tf.keras.regularizers.l2(self.regularization), padding="same")(input)
         else:
             shortcut = input
 

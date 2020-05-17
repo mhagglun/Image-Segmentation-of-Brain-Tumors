@@ -13,9 +13,9 @@ import util
 sns.set_style('darkgrid')
 
 BATCH_SIZE = 1
-EPOCHS = 50
-LEARNING_RATE = 1e-4
-DROPOUT = None
+EPOCHS = 30
+LEARNING_RATE = 5e-4
+DROPOUT = 0.2
 N = 5   # Number of samples to plot
 
 
@@ -27,16 +27,16 @@ val_data = DataGenerator('data/val',
 
 test_data = DataGenerator('data/test')
 
-model = Unet((512, 512, 1), n_filters=16,
+model = Unet((512, 512, 1), n_filters=64,
              learning_rate=LEARNING_RATE, dropout=DROPOUT).model
 
-# model = LinkNet((512, 512, 1), num_classes=1,
+# model = LinkNet((512, 512, 1), nf=64, num_classes=1,
 #                 learning_rate=LEARNING_RATE).model
 
 # model.summary()
 
 # The directory to store the results in
-folder = 'results/{}_{}e/'.format(model.name, EPOCHS)
+folder = 'results/{}_nf64_{}e_{}bs/'.format(model.name, EPOCHS, BATCH_SIZE)
 if os.path.exists(folder):
     shutil.rmtree(folder)
 os.makedirs(folder)
@@ -51,7 +51,7 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(
 
 # Reduces learning rate when a metric has stopped improving
 reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
-    monitor='val_loss', factor=0.5, patience=5, verbose=1, min_lr=1e-5, mode='min')
+    monitor='val_loss', factor=0.1, patience=5, verbose=1, min_lr=1e-5, mode='min')
 
 # Stop learning when there has been no improvement in the tracked metric for 'patience' epochs
 # early_stop = tf.keras.callbacks.EarlyStopping(
@@ -67,15 +67,18 @@ history = model.fit(train_data.stream, steps_per_epoch=train_data.steps_per_epoc
 plt.figure(figsize=(20.0, 10.0))
 plt.suptitle('{}'.format(model.name))
 plt.subplot(1, 2, 1, label='loss plot')
-plt.plot(np.arange(1, len(history.history['loss'])+1),history.history['loss'])
-plt.plot(np.arange(1, len(history.history['val_loss'])+1), history.history['val_loss'])
+plt.plot(np.arange(1, len(history.history['loss'])+1), history.history['loss'])
+plt.plot(
+    np.arange(1, len(history.history['val_loss'])+1), history.history['val_loss'])
 plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['Training set', 'Validation set'], loc='upper left')
 
 plt.subplot(1, 2, 2, label='dice score plot')
-plt.plot(np.arange(1, len(history.history['dice_score'])+1), history.history['dice_score'])
-plt.plot(np.arange(1, len(history.history['val_dice_score'])+1), history.history['val_dice_score'])
+plt.plot(np.arange(
+    1, len(history.history['dice_score'])+1), history.history['dice_score'])
+plt.plot(np.arange(
+    1, len(history.history['val_dice_score'])+1), history.history['val_dice_score'])
 plt.ylabel('DICE score')
 plt.xlabel('Epoch')
 plt.legend(['Training set', 'Validation set'], loc='upper left')
@@ -98,11 +101,12 @@ for data, pred in zip(test_data.stream, predictions):
 
 tf.print('DICE score on test set:', tf.reduce_mean(tf.stack(DICE)).numpy())
 with open(folder+'dice_score.txt', 'w') as f:
-    f.write('DICE score on test set: {:.3f}'.format(tf.reduce_mean(tf.stack(DICE)).numpy()))
+    f.write('DICE score on test set: {:.3f}'.format(
+        tf.reduce_mean(tf.stack(DICE)).numpy()))
 
 
 # Plot images
-for idx, img in enumerate(test_images,1):
+for idx, img in enumerate(test_images, 1):
     if idx > N:
         break
 

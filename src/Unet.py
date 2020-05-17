@@ -7,7 +7,7 @@ from util import dice_score
 
 class Unet:
 
-    def __init__(self, image_shape=(512, 512, 1), n_filters=16, learning_rate=1e-3, dropout=None):
+    def __init__(self, image_shape=(512, 512, 1), n_filters=64, learning_rate=1e-3, dropout=None):
         self.image_shape = image_shape
         self.n_filters = n_filters
         self.learning_rate = learning_rate

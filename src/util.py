@@ -3,8 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap, BoundaryNorm
-import seaborn as sns; sns.set()
-
+import seaborn as sns
+sns.set()
 
 
 def plot_masks(image_data, true_mask, predicted_mask, filename=None):
@@ -46,7 +46,6 @@ def plot_masks(image_data, true_mask, predicted_mask, filename=None):
     ax1.grid(b=None)
     ax1.set_title('True mask')
 
-
     ax2 = plt.subplot(1, 3, 2)
     ax2.imshow(image_data.reshape(512, 512),
                cmap='gray', interpolation='none')
@@ -56,7 +55,6 @@ def plot_masks(image_data, true_mask, predicted_mask, filename=None):
     ax2.grid(b=None)
     ax2.set_title('Predicted mask')
 
-
     ax3 = plt.subplot(1, 3, 3)
     mask = true_mask - predicted_mask
     dice = dice_score(true_mask, predicted_mask)
@@ -64,14 +62,15 @@ def plot_masks(image_data, true_mask, predicted_mask, filename=None):
 
     inv_mask = np.logical_not(np.logical_or(true_mask, predicted_mask))
     ax3.imshow(inv_mask, cmap=white, interpolation='none', alpha=1)
-    
+
     patches = [mpatches.Patch(facecolor='firebrick', label="FN", edgecolor='black'), mpatches.Patch(
         facecolor='seagreen', label="TP", edgecolor='black'), mpatches.Patch(facecolor='cornflowerblue', label="FP", edgecolor='black')]
     ax3.legend(handles=patches, bbox_to_anchor=(
         1.05, 1), loc=2, borderaxespad=0.)
     ax3.grid(color='lightgray')
     ax3.set_title('Difference between masks')
-    ax3.set_xlabel('DICE score: {:.3f}'.format(tf.reduce_mean(tf.stack(dice)).numpy()), fontsize=12)
+    ax3.set_xlabel('DICE score: {:.3f}'.format(
+        tf.reduce_mean(tf.stack(dice)).numpy()), fontsize=12)
     ax3.set_xticklabels([])
     ax3.set_yticklabels([])
 
