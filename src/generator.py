@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import random
 import glob
 import h5py
 
@@ -18,13 +19,14 @@ if gpus:
 
 class DataGenerator():
 
-    def __init__(self, directory, epochs=1, batch_size=1):
+    def __init__(self, directory, epochs=1, batch_size=1, shuffle=False):
         super().__init__()
         self.directory = directory
         self.epochs = epochs
         self.batch_size = batch_size
         self.steps_per_epoch = int(
             len(glob.glob(self.directory+'/*.mat')) / batch_size)
+        self.shuffle = False
         self.stream = self.pipeline()
 
     def pipeline(self):
@@ -40,7 +42,12 @@ class DataGenerator():
 
     def generator(self):
         while True:
-            for filename in glob.glob(self.directory+'/*.mat'):
+            if self.shuffle:
+                files = random.shuffle(glob.glob(self.directory+'/*.mat'))
+            else:
+                files = glob.glob(self.directory+'/*.mat')
+
+            for filename in files:
                 data = {}
                 with h5py.File(filename, 'r') as file:
                     for struct in file:
