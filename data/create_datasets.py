@@ -5,7 +5,7 @@ import random
 from sklearn.model_selection import train_test_split
 
 
-def create_datasets(directory='data/braintumor', split=(0.6, 0.2, 0.2), train_dir='data/train', val_dir='data/val', test_dir='data/test', symlink=False):
+def create_datasets(directory='data/braintumor', split=(0.7, 0.2, 0.1), train_dir='data/train', val_dir='data/val', test_dir='data/test', symlink=False):
     files = os.listdir(directory)
     random.shuffle(files)
     folders = [train_dir, val_dir, test_dir]
@@ -13,7 +13,7 @@ def create_datasets(directory='data/braintumor', split=(0.6, 0.2, 0.2), train_di
     for folder in folders:
         if os.path.exists(folder):
             shutil.rmtree(folder)
-        os.mkdir(folder)
+        os.makedirs(folder)
 
     train_samples = int(len(files) * split[0])
     val_samples = int(len(files) * split[1])
